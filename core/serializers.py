@@ -1,4 +1,4 @@
-from .models import User
+from .models import User, Product
 from rest_framework import serializers
 from django.contrib.auth import authenticate
 
@@ -37,6 +37,10 @@ class AuthTokenSerializer(serializers.Serializer):
         
         return user
 
+class ProductSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Product
+        fields = ['title', 'description', 'price', 'stock']
 
 # {
 # "first_name": "Samim",

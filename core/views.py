@@ -1,9 +1,15 @@
 from django.shortcuts import render
-from .serializers import CreateUserSerializer, AuthTokenSerializer
+from .serializers import CreateUserSerializer, AuthTokenSerializer, ProductSerializer
 from rest_framework import views
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.viewsets import ModelViewSet
+from .models import Product
+from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
+from .permisons import IsAdminCreateOnly
+# from django.core.exceptions import ValidationError
+from rest_framework.exceptions import ValidationError
 
 class CreateUserView(views.APIView):
     def post(self, request, *args, **kwargs):
@@ -22,7 +28,6 @@ class CreateUserView(views.APIView):
                 "errors": serializer.errors,
             }, status=status.HTTP_400_BAD_REQUEST
         )
-
 
 class AuthTokenView(views.APIView):
     def post(self, request, *args, **kwargs):
@@ -45,4 +50,36 @@ class AuthTokenView(views.APIView):
                 "errors": serializer.errors,
             }, status=status.HTTP_400_BAD_REQUEST
         )
+
+class ProductViewSet(ModelViewSet):
+    queryset = Product.objects.all()
+    serializer_class = ProductSerializer
+    permission_classes = [IsAdminCreateOnly]
+    
+    def create(self, request, *args, **kwargs):
+        try:
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(
+                {
+                    "status": True,
+                    "data": serializer.data,
+                }
+            )
+        except ValidationError as ve:
+            error = {key: str(value[0]) for key, value in ve.detail.items()}
+            return Response(
+                {
+                    "status": False,
+                    "errors": error,
+                }, status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            return Response(
+                {
+                    "status": False,
+                    "errors": str(e),
+                }, status=status.HTTP_400_BAD_REQUEST
+            )
 
